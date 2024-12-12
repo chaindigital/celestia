@@ -8,39 +8,39 @@ Official documentation:
 >- [Validator setup instructions](https://docs.celestia.org/nodes/consensus-node)
 # 📋 Upgrade celestia app
 ~~~bash
-source <(curl -s https://raw.githubusercontent.com/ERNcrypto/celestia/main/upgradeapp.sh)
+source <(curl -s https://raw.githubusercontent.com/chaindigital/celestia/main/upgradeapp.sh)
 ~~~
 # 📋 Upgrade celestia node
 ~~~bash
-source <(curl -s https://raw.githubusercontent.com/ERNcrypto/celestia/main/upgradenode.sh)
+source <(curl -s https://raw.githubusercontent.com/chaindigital/celestia/main/upgradenode.sh)
 ~~~
 # 🛠️ Install test validator
 ~~~bash
-source <(curl -s https://raw.githubusercontent.com/ERNcrypto/celestia/main/installvalidatortest.sh)
+source <(curl -s https://raw.githubusercontent.com/chaindigital/celestia/main/installvalidatortest.sh)
 ~~~
 # 🛠️ Install main validator
 ~~~bash
-source <(curl -s https://raw.githubusercontent.com/ERNcrypto/celestia/main/installvalidatormain.sh)
+source <(curl -s https://raw.githubusercontent.com/chaindigital/celestia/main/installvalidatormain.sh)
 ~~~
 # 🛠️ Install full test node
 ~~~bash
-source <(curl -s https://raw.githubusercontent.com/ERNcrypto/celestia/main/installfulltest.sh)
+source <(curl -s https://raw.githubusercontent.com/chaindigital/celestia/main/installfulltest.sh)
 ~~~
 # 🛠️ Install full main node
 ~~~bash
-source <(curl -s https://raw.githubusercontent.com/ERNcrypto/celestia/main/installfullmain.sh)
+source <(curl -s https://raw.githubusercontent.com/chaindigital/celestia/main/installfullmain.sh)
 ~~~
 # 🛠️ Install test bridge
 ~~~bash 
-source <(curl -s https://raw.githubusercontent.com/ERNcrypto/celestia/main/installbridgetest.sh)
+source <(curl -s https://raw.githubusercontent.com/chaindigital/celestia/main/installbridgetest.sh)
 ~~~
 # 🛠️ Install main bridge
 ~~~bash 
-source <(curl -s https://raw.githubusercontent.com/ERNcrypto/celestia/main/installbridgemain.sh)
+source <(curl -s https://raw.githubusercontent.com/chaindigital/celestia/main/installbridgemain.sh)
 ~~~
 # 🛠️ Install monitoring
 ~~~bash 
-source <(curl -s https://raw.githubusercontent.com/ERNcrypto/celestia/main/installmonitoring.sh)
+source <(curl -s https://raw.githubusercontent.com/chaindigital/celestia/main/installmonitoring.sh)
 ~~~
 
 
