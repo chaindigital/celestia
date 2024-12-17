@@ -30,6 +30,7 @@ cd celestia-app/
 APP_VERSION=v3.0.2 
 git checkout tags/$APP_VERSION -b $APP_VERSION 
 make install
+make enable-bbr 
 
 cd $HOME
 rm -rf networks
