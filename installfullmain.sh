@@ -44,6 +44,13 @@ sed -i -e "s/^pruning *=.*/pruning = \"$pruning\"/" $HOME/.celestia-app/config/a
 sed -i -e "s/^pruning-keep-recent *=.*/pruning-keep-recent = \"$pruning_keep_recent\"/" $HOME/.celestia-app/config/app.toml && \
 sed -i -e "s/^pruning-interval *=.*/pruning-interval = \"$pruning_interval\"/" $HOME/.celestia-app/config/app.toml
 
+sed -i -e "s|^recv_rate *=.*|recv_rate = 10485760|" -e "s|^send_rate *=.*|send_rate = 10485760|" -e "s|^ttl-num-blocks *=.*|ttl-num-blocks = 12|" $HOME/.celestia-app/config/config.toml
+​
+sudo modprobe tcp_bbr
+echo "net.core.default_qdisc=fq" | sudo tee -a /etc/sysctl.conf
+echo "net.ipv4.tcp_congestion_control=bbr" | sudo tee -a /etc/sysctl.conf
+sudo sysctl -p
+
 cd $HOME
 sudo apt install aria2 -y
 rm -rf ~/.celestia-app/data
