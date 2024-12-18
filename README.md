@@ -8,11 +8,11 @@ Official documentation:
 >- [Validator setup instructions](https://docs.celestia.org/nodes/consensus-node)
 # 📋 Upgrade celestia test app
 ~~~bash
-source <(curl -s https://raw.githubusercontent.com/chaindigital/celestia/main/upgradeapptest.sh)
+source <(curl -s https://raw.githubusercontent.com/chaindigital/celestia/main/upgradeapp.sh)
 ~~~
 # 📋 Upgrade celestia test node 
 ~~~bash
-source <(curl -s https://raw.githubusercontent.com/chaindigital/celestia/main/upgradenodetest.sh)
+source <(curl -s https://raw.githubusercontent.com/chaindigital/celestia/main/upgradenode.sh)
 ~~~
 # 🛠️ Install test validator
 ~~~bash
