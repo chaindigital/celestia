@@ -3,8 +3,8 @@ sudo apt update && sudo apt upgrade -y
 sudo apt install curl git wget htop tmux build-essential jq make gcc -y
 
 CELESTIA_PORT=26
-echo "export WALLET="ERN" >> $HOME/.bash_profile
-echo "export MONIKER="ERN" >> $HOME/.bash_profile
+echo "export WALLET="Node" >> $HOME/.bash_profile
+echo "export MONIKER="Node" >> $HOME/.bash_profile
 echo "export CHAIN_ID="mocha-4"" >> $HOME/.bash_profile
 echo "export CELESTIA_PORT="${CELESTIA_PORT}"" >> $HOME/.bash_profile
 source $HOME/.bash_profile
@@ -42,7 +42,7 @@ git clone https://github.com/celestiaorg/networks.git
 celestia-appd config node tcp://localhost:${CELESTIA_PORT}657
 celestia-appd config keyring-backend os
 celestia-appd config chain-id $CHAIN_ID
-celestia-appd init ERN --chain-id mocha-4
+celestia-appd init Node --chain-id mocha-4
 
 wget -O $HOME/.celestia-app/config/genesis.json https://testnets.services-ernventures.com/celestia/genesis.json
 wget -O $HOME/.celestia-app/config/addrbook.json https://testnets.services-ernventures.com/celestia/addrbook.json
@@ -99,7 +99,7 @@ cd $HOME
 sudo apt install lz4 -y
 rm -rf ~/.celestia-app/data
 mkdir -p ~/.celestia-app/data
-wget -O snap_celestia.tar.lz4 https://testnets.services-ernventures.com/celestia/snap_celestia-prun.tar.lz4 | lz4 -dc - | tar -xf - -C $HOME/.celestia-app/data
+wget -O snap_celestia.tar.lz4 https://testnets.chaindigital.io/celestia/snap_celestia-prun.tar.lz4 | lz4 -dc - | tar -xf - -C $HOME/.celestia-app/data
 
 sudo systemctl daemon-reload
 sudo systemctl enable celestia-appd
