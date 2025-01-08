@@ -38,7 +38,7 @@ ExecStart=$(which celestia) bridge start \
   --gateway.port 26659 \
   --metrics.tls=true \
   --metrics \
-  --metrics.endpoint otel.celestia-mocha.com
+  --metrics.endpoint otel.mocha.celestia.observer
   --keyring.keyname bridge_wallet
 Restart=on-failure
 RestartSec=3
