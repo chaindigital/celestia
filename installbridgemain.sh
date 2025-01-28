@@ -4,9 +4,7 @@ git clone https://github.com/celestiaorg/celestia-node && cd celestia-node
 git checkout tags/v0.20.4
 
 make build
-
 make install
-
 make cel-key
 
 mv $HOME/celestia-node/cel-key /usr/local/bin/ 
@@ -24,14 +22,13 @@ celestia bridge init \
   --rpc.port 26658 \
   --keyring.accname bridge_wallet
 
-tee <<EOF >/dev/null /etc/systemd/system/celestia-bridge.service
+sudo tee <<EOF >/dev/null /etc/systemd/system/celestia-bridge.service
 [Unit]
 Description=celestia-bridge Cosmos daemon
 After=network-online.target
-
 [Service]
 User=$USER
-ExecStart=$(which celestia) bridge start \
+ExecStart=$(which celestia) bridge start --archival \
   --p2p.network celestia \
   --gateway \
   --gateway.addr 0.0.0.0 \
@@ -42,7 +39,6 @@ ExecStart=$(which celestia) bridge start \
 Restart=on-failure
 RestartSec=3
 LimitNOFILE=65535
-
 [Install]
 WantedBy=multi-user.target
 EOF
