@@ -17,7 +17,7 @@ source ~/.bash_profile
 go version
 
 git clone https://github.com/celestiaorg/celestia-app && cd celestia-app
-git checkout v3.2.0
+git checkout v3.3.1
 make install
 
 cd $HOME
@@ -28,7 +28,8 @@ celestia-appd init ERN --chain-id celestia
 wget -O $HOME/.celestia-app/config/genesis.json https://snapshots.kjnodes.com/celestia/genesis.json
 wget -O $HOME/.celestia-app/config/addrbook.json https://snapshots.kjnodes.com/celestia/addrbook.json
 
-sed -i.bak -e "s/^minimum-gas-prices *=.*/minimum-gas-prices = \"0.002utia\"/;" ~/.celestia-app/config/app.toml
+sed -i -e "s|^minimum-gas-prices *=.*|minimum-gas-prices = \"0.002utia\"|" $HOME/.celestia-app/config/app.toml
+sed -i -e "s/^indexer *=.*/indexer = \"kv\"/" $HOME/.celestia-app/config/config.toml
 
 EXTERNAL_ADDRESS=$(wget -qO- eth0.me)
 sed -i.bak -e "s/^external_address = \"\"/external_address = \"$EXTERNAL_ADDRESS:26656\"/" $HOME/.celestia-app/config/config.toml
@@ -64,19 +65,16 @@ sudo tee /etc/systemd/system/celestia-appd.service > /dev/null <<EOF
 [Unit]
 Description=celestia-appd
 After=network-online.target
-
 [Service]
 User=$USER
 ExecStart=$(which celestia-appd) start
 Restart=on-failure
 RestartSec=3
 LimitNOFILE=65535
-
 [Install]
 WantedBy=multi-user.target
 EOF
 
 systemctl daemon-reload
 systemctl enable celestia-appd
-
 systemctl restart celestia-appd && journalctl -u celestia-appd -f -o cat
