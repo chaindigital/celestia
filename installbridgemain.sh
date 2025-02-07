@@ -1,7 +1,7 @@
 #!/bin/bash
 git clone https://github.com/celestiaorg/celestia-node && cd celestia-node
 
-git checkout tags/v0.20.4
+git checkout tags/v0.21.5
 
 make build
 make install
@@ -13,8 +13,7 @@ cel-key list --node.type bridge --keyring-backend test --p2p.network celestia
 celestia bridge init \
   --p2p.network celestia \
   --core.ip http://localhost \
-  --core.rpc.port 26657 \
-  --core.grpc.port 9090 \
+  --core.port 9090 \
   --gateway \
   --gateway.addr 0.0.0.0 \
   --gateway.port 26659 \
@@ -35,7 +34,7 @@ ExecStart=$(which celestia) bridge start --archival \
   --gateway.port 26659 \
   --metrics.tls=false \
   --metrics \
-  --metrics.endpoint otel.celestia.tools:4318
+  --metrics.endpoint=otel.mocha.celestia.observer
 Restart=on-failure
 RestartSec=3
 LimitNOFILE=65535
