@@ -4,89 +4,103 @@
 sudo apt update && sudo apt install -y python3 python3-pip python3-venv curl jq
 
 # === Создание директории ===
-mkdir -p ~/celestia-maps && cd ~/celestia-maps
+MAP_DIR="$HOME/celestia-maps"
+mkdir -p "$MAP_DIR"
+cd "$MAP_DIR"
 
-# === Виртуальное окружение ===
+# === Создание виртуального окружения ===
 python3 -m venv .venv
 source .venv/bin/activate
-pip install folium tqdm
+pip install requests tqdm folium
 
-# === Создание скрипта ===
-sudo tee generate_maps.py > /dev/null << 'EOF'
+# === Создание generate_maps.py ===
+tee "$MAP_DIR/generate_maps.py" > /dev/null << 'EOF'
 #!/usr/bin/env python3
 import csv
 import folium
-import os
 from folium.plugins import MarkerCluster
+import os
 
-def load_csv(filepath):
+DATA_DIR = "/root/peers_data"
+NETWORKS = ["testnet", "mainnet"]
+
+def load_data(csv_path):
     data = []
-    if not os.path.exists(filepath):
-        print(f"[!] Файл не найден: {filepath}")
-        return data
-    with open(filepath, newline='') as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            try:
-                lat = float(row["lat"])
-                lon = float(row["lon"])
-                if lat == 0.0 and lon == 0.0:
+    try:
+        with open(csv_path, newline='') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                try:
+                    lat, lon = float(row["lat"]), float(row["lon"])
+                    if lat == 0.0 and lon == 0.0:
+                        continue
+                    data.append({
+                        "lat": lat,
+                        "lon": lon,
+                        "peer_id": row.get("peer_id", ""),
+                        "ip": row.get("ip", ""),
+                        "city": row.get("city", ""),
+                        "country": row.get("country", ""),
+                        "org": row.get("org", "")
+                    })
+                except:
                     continue
-                data.append({
-                    "lat": lat,
-                    "lon": lon,
-                    "peer_id": row["peer_id"],
-                    "ip": row["ip"],
-                    "city": row["city"],
-                    "country": row["country"],
-                    "org": row["org"]
-                })
-            except Exception as e:
-                print(f"⚠️ Ошибка в строке CSV: {e}")
-    print(f"✅ Загружено {len(data)} точек из {filepath}")
+        print(f"✅ Загружено {len(data)} точек из {csv_path}")
+    except Exception as e:
+        print(f"❌ Ошибка загрузки {csv_path}: {e}")
     return data
 
 def generate_map(data, output_file):
-    if not data:
-        print(f"❌ Нет данных для генерации карты {output_file}")
-        return
     m = folium.Map(tiles="CartoDB dark_matter", zoom_start=2)
-    marker_cluster = MarkerCluster().add_to(m)
-    for item in data:
+    cluster = MarkerCluster().add_to(m)
+    for node in data:
+        popup = (
+            f"<b>Peer ID:</b> {node['peer_id']}<br>"
+            f"<b>IP:</b> {node['ip']}<br>"
+            f"<b>Country:</b> {node['country']}<br>"
+            f"<b>City:</b> {node['city']}<br>"
+            f"<b>Org:</b> {node['org']}"
+        )
         folium.CircleMarker(
-            location=[item["lat"], item["lon"]],
+            location=(node["lat"], node["lon"]),
             radius=5,
             fill=True,
             color="cyan",
             fill_opacity=0.7,
-            popup=(
-                f"<b>Peer ID:</b> {item['peer_id']}<br>"
-                f"<b>IP:</b> {item['ip']}<br>"
-                f"<b>Country:</b> {item['country']}<br>"
-                f"<b>City:</b> {item['city']}<br>"
-                f"<b>Org:</b> {item['org']}"
-            )
-        ).add_to(marker_cluster)
+            popup=popup
+        ).add_to(cluster)
     m.save(output_file)
     print(f"🗺️ Карта сохранена: {output_file}")
 
 def main():
-    base_dir = "/root/peers_data"
-    testnet_csv = os.path.join(base_dir, "peers_geo_testnet_latest.csv")
-    mainnet_csv = os.path.join(base_dir, "peers_geo_mainnet_latest.csv")
-    testnet_data = load_csv(testnet_csv)
-    mainnet_data = load_csv(mainnet_csv)
-    generate_map(testnet_data, "map_testnet.html")
-    generate_map(mainnet_data, "map_mainnet.html")
+    for net in NETWORKS:
+        file = os.path.join(DATA_DIR, f"peers_geo_{net}_latest.csv")
+        if os.path.exists(file):
+            data = load_data(file)
+            if data:
+                generate_map(data, f"map_{net}.html")
+        else:
+            print(f"⚠️ Файл не найден: {file}")
 
 if __name__ == "__main__":
     main()
 EOF
 
-# === Cron каждые 5 минут ===
-(crontab -l 2>/dev/null; echo "*/5 * * * * source \$HOME/celestia-maps/.venv/bin/activate && python3 \$HOME/celestia-maps/generate_maps.py >> \$HOME/celestia-maps/map_cron.log 2>&1") | crontab -
+# === Скрипт запуска для cron ===
+tee "$MAP_DIR/run_maps.sh" > /dev/null << 'EOF'
+#!/bin/bash
+source "$HOME/celestia-maps/.venv/bin/activate"
+/root/celestia-maps/.venv/bin/python3 /root/celestia-maps/generate_maps.py >> /root/celestia-maps/map_cron.log 2>&1
+EOF
 
-# === Вывод напоминания ===
+# === Сделать исполняемым ===
+chmod +x "$MAP_DIR/run_maps.sh"
+chmod +x "$MAP_DIR/generate_maps.py"
+
+# === Добавить cron каждые 5 минут ===
+( crontab -l 2>/dev/null | grep -v 'run_maps.sh' ; echo "*/5 * * * * /bin/bash $MAP_DIR/run_maps.sh" ) | crontab -
+
+echo ""
 echo "✅ Установка завершена. Карты будут автоматически обновляться каждые 5 минут."
 echo "👉 Для запуска вручную:"
 echo "source ~/celestia-maps/.venv/bin/activate && python3 ~/celestia-maps/generate_maps.py"
