@@ -11,7 +11,7 @@ cd "$MAP_DIR"
 # === Создание виртуального окружения ===
 python3 -m venv .venv
 source .venv/bin/activate
-pip install --break-system-packages requests tqdm folium
+pip install requests tqdm folium
 
 # === Создание generate_maps.py ===
 tee "$MAP_DIR/generate_maps.py" > /dev/null << 'EOF'
@@ -22,7 +22,6 @@ from folium.plugins import MarkerCluster
 import os
 
 DATA_DIR = "/root/peers_data"
-OUTPUT_DIR = os.path.dirname(os.path.abspath(__file__))
 NETWORKS = ["testnet", "mainnet"]
 
 def load_data(csv_path):
@@ -76,11 +75,10 @@ def generate_map(data, output_file):
 def main():
     for net in NETWORKS:
         file = os.path.join(DATA_DIR, f"peers_geo_{net}_latest.csv")
-        output_file = os.path.join(OUTPUT_DIR, f"map_{net}.html")
         if os.path.exists(file):
             data = load_data(file)
             if data:
-                generate_map(data, output_file)
+                generate_map(data, f"map_{net}.html")
         else:
             print(f"⚠️ Файл не найден: {file}")
 
@@ -89,20 +87,19 @@ if __name__ == "__main__":
 EOF
 
 # === Скрипт запуска для cron ===
-tee "$MAP_DIR/run_maps.sh" > /dev/null << EOF
+tee "$MAP_DIR/run_maps.sh" > /dev/null << 'EOF'
 #!/bin/bash
 source "$HOME/celestia-maps/.venv/bin/activate"
-"$HOME/celestia-maps/.venv/bin/python3" "$HOME/celestia-maps/generate_maps.py" >> "$HOME/celestia-maps/map_cron.log" 2>&1
+/root/celestia-maps/.venv/bin/python3 /root/celestia-maps/generate_maps.py >> /root/celestia-maps/map_cron.log 2>&1
 EOF
 
-# === Сделать скрипты исполняемыми ===
+# === Сделать исполняемым ===
 chmod +x "$MAP_DIR/run_maps.sh"
 chmod +x "$MAP_DIR/generate_maps.py"
 
 # === Добавить cron каждые 5 минут ===
 ( crontab -l 2>/dev/null | grep -v 'run_maps.sh' ; echo "*/5 * * * * /bin/bash $MAP_DIR/run_maps.sh" ) | crontab -
 
-# === Вывод завершения ===
 echo ""
 echo "✅ Установка завершена. Карты будут автоматически обновляться каждые 5 минут."
 echo "👉 Для запуска вручную:"
