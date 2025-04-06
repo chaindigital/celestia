@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# === Запрос IP и пароля ===
+# === Ввод переменных ===
 read -p "Введите IP третьего сервера (REMOTE_IP): " REMOTE_IP
 read -s -p "Введите пароль root пользователя на третьем сервере (REMOTE_PASS): " REMOTE_PASS
 echo
@@ -8,14 +8,16 @@ echo
 # === Установка зависимостей ===
 sudo apt update && sudo apt install -y python3 python3-pip python3-venv jq curl sshpass
 
-# === Создание рабочей директории и окружения ===
+# === Создание директории и виртуального окружения ===
 mkdir -p ~/celestia-peers && cd ~/celestia-peers
 python3 -m venv .venv
 source .venv/bin/activate
-pip install --break-system-packages requests tqdm
 
-# === СКРИПТ COLLECT_AND_SEND ===
-sudo tee collect_and_send_peers.py > /dev/null << EOF
+# === Установка Python-библиотек ===
+pip install requests tqdm
+
+# === Создание Python-скрипта ===
+tee collect_and_send_peers.py > /dev/null << EOF
 #!/usr/bin/env python3
 import subprocess, json, requests, csv, time, shutil, os
 from tqdm import tqdm
@@ -29,18 +31,17 @@ REMOTE_PASS = "$REMOTE_PASS"
 
 def get_peers():
     try:
-        out = subprocess.run(["celestia", "p2p", "peers"], capture_output=True, text=True, check=True)
-        data = json.loads(out.stdout)
+        result = subprocess.run(["celestia", "p2p", "peers"], capture_output=True, text=True, check=True)
+        data = json.loads(result.stdout)
         return data.get("result", {}).get("peers", [])
     except: return []
 
 def get_ip(peer_id):
     try:
-        out = subprocess.run(["celestia", "p2p", "peer-info", peer_id], capture_output=True, text=True, check=True)
-        data = json.loads(out.stdout)
+        result = subprocess.run(["celestia", "p2p", "peer-info", peer_id], capture_output=True, text=True, check=True)
+        data = json.loads(result.stdout)
         for addr in data.get("result", {}).get("peer_addr", []):
-            if "/ip4/" in addr:
-                return addr.split("/ip4/")[1].split("/")[0]
+            if "/ip4/" in addr: return addr.split("/ip4/")[1].split("/")[0]
     except: return None
 
 def get_geodata(ip):
@@ -51,14 +52,14 @@ def get_geodata(ip):
 
 def save_to_csv(data):
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    full = f"peers_geo_{NETWORK_TAG}_\${ts}.csv"
+    full = f"peers_geo_{NETWORK_TAG}_\{ts}.csv"
     latest = f"peers_geo_{NETWORK_TAG}_latest.csv"
     with open(full, "w", newline="") as f:
         w = csv.writer(f, quoting=csv.QUOTE_ALL)
         w.writerow(["peer_id", "ip", "city", "region", "country", "lat", "lon", "org"])
         for row in data:
-            loc = row.get("loc", "0.0,0.0").split(",")
-            w.writerow([row.get("peer_id",""), row.get("ip",""), row.get("city",""), row.get("region",""), row.get("country",""), loc[0], loc[1], row.get("org","")])
+            lat, lon = row.get("loc", "0.0,0.0").split(",")
+            w.writerow([row.get("peer_id",""), row.get("ip",""), row.get("city",""), row.get("region",""), row.get("country",""), lat, lon, row.get("org","")])
     shutil.copyfile(full, latest)
     print(f"✅ Файл {full} сохранён")
     return [full, latest]
@@ -93,11 +94,11 @@ def main():
 if __name__ == "__main__": main()
 EOF
 
-# === Разрешения ===
+# === Сделать скрипт исполняемым (без sudo)
 chmod +x collect_and_send_peers.py
 
-# === Добавление в crontab каждые 5 минут ===
-(crontab -l 2>/dev/null; echo "*/5 * * * * bash -c 'cd ~/celestia-peers && source .venv/bin/activate && python3 collect_and_send_peers.py >> ~/cron.log 2>&1'") | crontab -
+# === Добавить в crontab (каждые 5 минут)
+( crontab -l 2>/dev/null; echo "*/5 * * * * cd ~/celestia-peers && source .venv/bin/activate && /usr/bin/python3 collect_and_send_peers.py" ) | crontab -
 
 echo "✅ Установка завершена. Cron будет выполнять сбор каждые 5 минут."
 echo "👉 Для запуска вручную:"
