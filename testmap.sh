@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# === Ввод переменных ===
+# === Запрос IP и пароля ===
 read -p "Введите IP третьего сервера (REMOTE_IP): " REMOTE_IP
 read -s -p "Введите пароль root пользователя на третьем сервере (REMOTE_PASS): " REMOTE_PASS
 echo
@@ -8,13 +8,13 @@ echo
 # === Установка зависимостей ===
 sudo apt update && sudo apt install -y python3 python3-pip python3-venv jq curl sshpass
 
-# === Создание директории и окружения ===
+# === Создание рабочей директории и окружения ===
 mkdir -p ~/celestia-peers && cd ~/celestia-peers
 python3 -m venv .venv
 source .venv/bin/activate
-pip install requests tqdm
+pip install --break-system-packages requests tqdm
 
-# === Создание Python-скрипта ===
+# === СКРИПТ COLLECT_AND_SEND ===
 sudo tee collect_and_send_peers.py > /dev/null << EOF
 #!/usr/bin/env python3
 import subprocess, json, requests, csv, time, shutil, os
@@ -29,17 +29,18 @@ REMOTE_PASS = "$REMOTE_PASS"
 
 def get_peers():
     try:
-        result = subprocess.run(["celestia", "p2p", "peers"], capture_output=True, text=True, check=True)
-        data = json.loads(result.stdout)
+        out = subprocess.run(["celestia", "p2p", "peers"], capture_output=True, text=True, check=True)
+        data = json.loads(out.stdout)
         return data.get("result", {}).get("peers", [])
     except: return []
 
 def get_ip(peer_id):
     try:
-        result = subprocess.run(["celestia", "p2p", "peer-info", peer_id], capture_output=True, text=True, check=True)
-        data = json.loads(result.stdout)
+        out = subprocess.run(["celestia", "p2p", "peer-info", peer_id], capture_output=True, text=True, check=True)
+        data = json.loads(out.stdout)
         for addr in data.get("result", {}).get("peer_addr", []):
-            if "/ip4/" in addr: return addr.split("/ip4/")[1].split("/")[0]
+            if "/ip4/" in addr:
+                return addr.split("/ip4/")[1].split("/")[0]
     except: return None
 
 def get_geodata(ip):
@@ -50,14 +51,14 @@ def get_geodata(ip):
 
 def save_to_csv(data):
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    full = f"peers_geo_{NETWORK_TAG}_\{ts}.csv"
+    full = f"peers_geo_{NETWORK_TAG}_\${ts}.csv"
     latest = f"peers_geo_{NETWORK_TAG}_latest.csv"
     with open(full, "w", newline="") as f:
         w = csv.writer(f, quoting=csv.QUOTE_ALL)
         w.writerow(["peer_id", "ip", "city", "region", "country", "lat", "lon", "org"])
         for row in data:
-            lat, lon = row.get("loc", "0.0,0.0").split(",")
-            w.writerow([row.get("peer_id",""), row.get("ip",""), row.get("city",""), row.get("region",""), row.get("country",""), lat, lon, row.get("org","")])
+            loc = row.get("loc", "0.0,0.0").split(",")
+            w.writerow([row.get("peer_id",""), row.get("ip",""), row.get("city",""), row.get("region",""), row.get("country",""), loc[0], loc[1], row.get("org","")])
     shutil.copyfile(full, latest)
     print(f"✅ Файл {full} сохранён")
     return [full, latest]
@@ -93,11 +94,10 @@ if __name__ == "__main__": main()
 EOF
 
 # === Разрешения ===
-sudo chmod +x collect_and_send_peers.py
+chmod +x collect_and_send_peers.py
 
-# === Установка cron ===
-CRON_CMD="/home/$(whoami)/celestia-peers/.venv/bin/python3 /home/$(whoami)/celestia-peers/collect_and_send_peers.py >> /home/$(whoami)/celestia-peers/cron.log 2>&1"
-( crontab -l 2>/dev/null | grep -v "collect_and_send_peers.py" ; echo "*/5 * * * * $CRON_CMD" ) | crontab -
+# === Добавление в crontab каждые 5 минут ===
+(crontab -l 2>/dev/null; echo "*/5 * * * * bash -c 'cd ~/celestia-peers && source .venv/bin/activate && python3 collect_and_send_peers.py >> ~/cron.log 2>&1'") | crontab -
 
 echo "✅ Установка завершена. Cron будет выполнять сбор каждые 5 минут."
 echo "👉 Для запуска вручную:"
