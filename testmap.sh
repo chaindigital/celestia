@@ -1,24 +1,23 @@
 #!/bin/bash
 
-echo "🚀 Установка окружения для Celestia Testnet Peers"
-
-# 👉 Запрашиваем IP и пароль
-read -p "Введите IP сервера-приемника: " REMOTE_IP
-read -s -p "Введите пароль для SCP: " REMOTE_PASS
+# 📍 Запрос переменных у пользователя
+read -p "Введите IP третьего сервера (REMOTE_IP): " REMOTE_IP
+read -s -p "Введите пароль для SSH (REMOTE_PASS): " REMOTE_PASS
 echo ""
 
-# Обновление системы и установка зависимостей
-sudo apt update && sudo apt install -y python3 python3-pip python3-venv curl jq sshpass
+# 📦 Установка зависимостей
+sudo apt update && sudo apt install -y python3 python3-pip python3-venv jq curl sshpass
 
-# Создание директории
+# 📁 Создание директории и переход в неё
 mkdir -p ~/celestia-peers && cd ~/celestia-peers
 
-# Виртуальное окружение
+# 🐍 Виртуальное окружение и зависимости
 python3 -m venv .venv
 source .venv/bin/activate
+pip install --upgrade pip
 pip install requests tqdm
 
-# Создание Python-скрипта с передачей переменных
+# 🧠 Сохраняем скрипт Python
 sudo tee collect_and_send_peers.py > /dev/null << EOF
 #!/usr/bin/env python3
 import subprocess
@@ -30,13 +29,14 @@ import os
 from tqdm import tqdm
 from datetime import datetime
 import shutil
+import getpass
 
 # === Настройки ===
 NETWORK_TAG = "testnet"
 REMOTE_USER = "root"
-REMOTE_IP = "${REMOTE_IP}"
+REMOTE_IP = os.environ.get("REMOTE_IP")
+REMOTE_PASS = os.environ.get("REMOTE_PASS")
 REMOTE_DIR = "/root/peers_data/"
-REMOTE_PASS = "${REMOTE_PASS}"
 
 def get_peers():
     try:
@@ -73,7 +73,7 @@ def get_geodata(ip):
 
 def save_to_csv(data):
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"peers_geo_{NETWORK_TAG}_${timestamp}.csv"
+    filename = f"peers_geo_{NETWORK_TAG}_\{timestamp}.csv"
     latest_filename = f"peers_geo_{NETWORK_TAG}_latest.csv"
     with open(filename, "w", newline="") as f:
         writer = csv.writer(f, quoting=csv.QUOTE_ALL)
@@ -112,6 +112,9 @@ def send_to_remote(file):
         print(f"❌ Ошибка отправки файла: {e}")
 
 def main():
+    if not REMOTE_IP or not REMOTE_PASS:
+        print("❌ Переменные REMOTE_IP и REMOTE_PASS не заданы.")
+        return
     peers = get_peers()
     if not peers:
         print("❌ Пиры не найдены.")
@@ -139,10 +142,14 @@ if __name__ == "__main__":
     main()
 EOF
 
-# Разрешаем исполнение
-chmod +x collect_and_send_peers.py
+# 🧾 Делаем скрипт исполняемым
+sudo chmod +x collect_and_send_peers.py
 
-# Финальный вывод
+# 📦 Экспорт переменных окружения для передачи в Python
+export REMOTE_IP="$REMOTE_IP"
+export REMOTE_PASS="$REMOTE_PASS"
+
+# ✅ Финальное сообщение
 echo ""
-echo "✅ Установка завершена. Запусти сбор пиров вручную:"
+echo "✅ Установка завершена. Запусти вручную:"
 echo "source ~/celestia-peers/.venv/bin/activate && python3 ~/celestia-peers/collect_and_send_peers.py"
