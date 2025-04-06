@@ -8,13 +8,11 @@ echo
 # === Установка зависимостей ===
 sudo apt update && sudo apt install -y python3 python3-pip python3-venv jq curl sshpass
 
-# === Создание директории и виртуального окружения ===
+# === Создание директории и окружения ===
 mkdir -p ~/celestia-peers && cd ~/celestia-peers
 python3 -m venv .venv
 source .venv/bin/activate
-
-# === Установка Python-библиотек ===
-pip install requests tqdm
+pip install --break-system-packages requests tqdm
 
 # === Создание Python-скрипта ===
 tee collect_and_send_peers.py > /dev/null << EOF
@@ -52,7 +50,7 @@ def get_geodata(ip):
 
 def save_to_csv(data):
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    full = f"peers_geo_{NETWORK_TAG}_\{ts}.csv"
+    full = f"peers_geo_{NETWORK_TAG}_{ts}.csv"
     latest = f"peers_geo_{NETWORK_TAG}_latest.csv"
     with open(full, "w", newline="") as f:
         w = csv.writer(f, quoting=csv.QUOTE_ALL)
@@ -94,11 +92,10 @@ def main():
 if __name__ == "__main__": main()
 EOF
 
-# === Сделать скрипт исполняемым (без sudo)
 chmod +x collect_and_send_peers.py
 
-# === Добавить в crontab (каждые 5 минут)
-( crontab -l 2>/dev/null; echo "*/5 * * * * cd ~/celestia-peers && source .venv/bin/activate && /usr/bin/python3 collect_and_send_peers.py" ) | crontab -
+# === Настройка cron на каждые 5 минут ===
+( crontab -l 2>/dev/null; echo "*/5 * * * * source ~/celestia-peers/.venv/bin/activate && python3 ~/celestia-peers/collect_and_send_peers.py" ) | crontab -
 
 echo "✅ Установка завершена. Cron будет выполнять сбор каждые 5 минут."
 echo "👉 Для запуска вручную:"
