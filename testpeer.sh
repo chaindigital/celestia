@@ -15,7 +15,7 @@ source .venv/bin/activate
 pip install --break-system-packages requests tqdm
 
 # === Создание Python-скрипта ===
-tee collect_and_send_peers.py > /dev/null << EOF
+tee collect_and_send_peers_testnet.py > /dev/null << EOF
 #!/usr/bin/env python3
 import subprocess, json, requests, csv, time, shutil, os
 from tqdm import tqdm
@@ -27,12 +27,12 @@ REMOTE_IP = "$REMOTE_IP"
 REMOTE_PASS = "$REMOTE_PASS"
 REMOTE_DIR = "/root/peers_data/"
 CACHE_FILE = "peer_cache_testnet.json"
-LOG_FILE = "peers_cron.log"
+LOG_FILE = "peers_cron_testnet.log"
 
 def log(msg):
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     with open(LOG_FILE, "a") as f:
-        f.write(f"[{now}] {msg}\n")
+        f.write(f"[{now}] {msg}\\n")
     print(f"[{now}] {msg}")
 
 def get_peers():
@@ -114,7 +114,6 @@ def main():
         if not ip: continue
         new_cache[pid] = ip
 
-        # Если peer_id и IP не изменились — используем старое значение
         if pid in cache and cache[pid] == ip:
             continue
 
@@ -138,13 +137,13 @@ if __name__ == "__main__":
 EOF
 
 # === Права на выполнение ===
-chmod +x collect_and_send_peers.py
+chmod +x collect_and_send_peers_testnet.py
 
-# === Cron на каждые 20 минут (рекомендуется) ===
-(crontab -l 2>/dev/null; echo "*/20 * * * * cd \$HOME/celestia-peers && \$HOME/celestia-peers/.venv/bin/python3 collect_and_send_peers.py") | crontab -
+# === Cron на каждые 20 минут ===
+(crontab -l 2>/dev/null; echo "*/20 * * * * cd \$HOME/celestia-peers && \$HOME/celestia-peers/.venv/bin/python3 collect_and_send_peers_testnet.py") | crontab -
 
 echo ""
 echo "✅ Установка завершена. Скрипт будет запускаться каждые 20 минут."
 echo "👉 Для запуска вручную:"
-echo "source ~/celestia-peers/.venv/bin/activate && python3 ~/celestia-peers/collect_and_send_peers.py"
-echo "👉 Логи: ~/celestia-peers/peers_cron.log"
+echo "source ~/celestia-peers/.venv/bin/activate && python3 ~/celestia-peers/collect_and_send_peers_testnet.py"
+echo "👉 Логи: ~/celestia-peers/peers_cron_testnet.log"
