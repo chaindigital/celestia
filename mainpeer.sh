@@ -15,7 +15,7 @@ source .venv/bin/activate
 pip install --break-system-packages requests tqdm
 
 # === Создание Python-скрипта ===
-tee collect_and_send_peers.py > /dev/null << EOF
+tee collect_and_send_peers_mainnet.py > /dev/null << EOF
 #!/usr/bin/env python3
 import subprocess, json, requests, csv, time, shutil, os
 from tqdm import tqdm
@@ -28,7 +28,6 @@ REMOTE_PASS = "$REMOTE_PASS"
 REMOTE_DIR = "/root/peers_data/"
 CACHE_FILE = "peer_cache_mainnet.json"
 LOG_FILE = "peers_cron_mainnet.log"
-LATEST_FILE = f"peers_geo_{NETWORK_TAG}_latest.csv"
 
 def log(msg):
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -68,13 +67,14 @@ def save_cache(cache):
     with open(CACHE_FILE, "w") as f:
         json.dump(cache, f)
 
-def save_to_csv(rows):
-    with open(LATEST_FILE, "w", newline="") as f:
-        writer = csv.writer(f, quoting=csv.QUOTE_ALL)
-        writer.writerow(["peer_id", "ip", "city", "region", "country", "lat", "lon", "org"])
-        for row in rows:
+def save_to_csv(data):
+    latest = f"peers_geo_{NETWORK_TAG}_latest.csv"
+    with open(latest, "w", newline="") as f:
+        w = csv.writer(f, quoting=csv.QUOTE_ALL)
+        w.writerow(["peer_id", "ip", "city", "region", "country", "lat", "lon", "org"])
+        for row in data:
             lat, lon = row.get("loc", "0.0,0.0").split(",")
-            writer.writerow([
+            w.writerow([
                 row.get("peer_id", ""),
                 row.get("ip", ""),
                 row.get("city", ""),
@@ -84,8 +84,8 @@ def save_to_csv(rows):
                 lon,
                 row.get("org", "")
             ])
-    log(f"✅ Сохранено: {LATEST_FILE}")
-    return LATEST_FILE
+    log(f"✅ Сохранено: {latest}")
+    return latest
 
 def send_to_remote(file):
     log(f"📡 Отправка {file} на {REMOTE_IP}...")
@@ -109,14 +109,6 @@ def main():
     new_cache = {}
     result = []
 
-    # Загрузка существующих строк latest
-    existing_rows = {}
-    if os.path.exists(LATEST_FILE):
-        with open(LATEST_FILE, newline="") as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                existing_rows[row["peer_id"]] = row
-
     for pid in tqdm(peers, desc="Пиры"):
         ip = get_ip(pid)
         if not ip: continue
@@ -131,13 +123,12 @@ def main():
         result.append(geo)
         time.sleep(0.3)
 
-    # Обновляем изменившиеся строки
-    for row in result:
-        existing_rows[row["peer_id"]] = row
+    if not result:
+        log("ℹ️ Нет новых или изменённых пиров для сохранения.")
+    else:
+        file = save_to_csv(result)
+        send_to_remote(file)
 
-    updated_list = list(existing_rows.values())
-    file = save_to_csv(updated_list)
-    send_to_remote(file)
     save_cache(new_cache)
     log("✅ Завершено")
 
@@ -146,13 +137,13 @@ if __name__ == "__main__":
 EOF
 
 # === Права на выполнение ===
-chmod +x collect_and_send_peers.py
+chmod +x collect_and_send_peers_mainnet.py
 
-# === Cron на каждые 20 минут ===
-(crontab -l 2>/dev/null | grep -v "collect_and_send_peers.py" ; echo "*/20 * * * * cd \$HOME/celestia-peers && \$HOME/celestia-peers/.venv/bin/python3 collect_and_send_peers.py") | crontab -
+# === Cron на каждые 20 минут (рекомендуется) ===
+(crontab -l 2>/dev/null; echo "*/20 * * * * cd \$HOME/celestia-peers && \$HOME/celestia-peers/.venv/bin/python3 collect_and_send_peers_mainnet.py") | crontab -
 
 echo ""
 echo "✅ Установка завершена. Скрипт будет запускаться каждые 20 минут."
 echo "👉 Для запуска вручную:"
-echo "source ~/celestia-peers/.venv/bin/activate && python3 ~/celestia-peers/collect_and_send_peers.py"
+echo "source ~/celestia-peers/.venv/bin/activate && python3 ~/celestia-peers/collect_and_send_peers_mainnet.py"
 echo "👉 Логи: ~/celestia-peers/peers_cron_mainnet.log"
