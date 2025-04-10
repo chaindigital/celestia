@@ -24,9 +24,16 @@ from datetime import datetime
 NETWORK_TAG = "testnet"
 REMOTE_USER = "root"
 REMOTE_IP = "$REMOTE_IP"
-REMOTE_DIR = "/root/peers_data/"
 REMOTE_PASS = "$REMOTE_PASS"
-CACHE_FILE = "geo_cache.json"
+REMOTE_DIR = "/root/peers_data/"
+CACHE_FILE = "peer_cache_testnet.json"
+LOG_FILE = "peers_cron.log"
+
+def log(msg):
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    with open(LOG_FILE, "a") as f:
+        f.write(f"[{now}] {msg}\n")
+    print(f"[{now}] {msg}")
 
 def get_peers():
     try:
@@ -52,7 +59,7 @@ def get_geodata(ip):
 
 def load_cache():
     if os.path.exists(CACHE_FILE):
-        with open(CACHE_FILE, "r") as f:
+        with open(CACHE_FILE) as f:
             return json.load(f)
     return {}
 
@@ -77,69 +84,67 @@ def save_to_csv(data):
                 lon,
                 row.get("org", "")
             ])
-    print(f"✅ Сохранено: {latest}")
+    log(f"✅ Сохранено: {latest}")
     return latest
 
 def send_to_remote(file):
-    print(f"📡 Отправка {file} на {REMOTE_IP}...")
-    cmd = [
-        "sshpass", "-p", REMOTE_PASS, "scp",
-        "-o", "StrictHostKeyChecking=no",
-        "-o", "UserKnownHostsFile=/dev/null",
-        file, f"{REMOTE_USER}@{REMOTE_IP}:{REMOTE_DIR}"
-    ]
+    log(f"📡 Отправка {file} на {REMOTE_IP}...")
+    cmd = ["sshpass", "-p", REMOTE_PASS, "scp", "-o", "StrictHostKeyChecking=no",
+           "-o", "UserKnownHostsFile=/dev/null", file, f"{REMOTE_USER}@{REMOTE_IP}:{REMOTE_DIR}"]
     try:
         subprocess.run(cmd, check=True)
-        print("✅ Отправлено")
+        os.remove(file)
+        log(f"✅ Отправлено: {file}")
     except subprocess.CalledProcessError as e:
-        print(f"❌ Ошибка SCP: {e}")
+        log(f"❌ Ошибка отправки: {e}")
 
 def main():
+    log("🚀 Старт сбора пиров")
     peers = get_peers()
     if not peers:
-        print("❌ Пиры не найдены")
+        log("❌ Пиры не найдены.")
         return
 
     cache = load_cache()
-    new_data = []
+    new_cache = {}
+    result = []
 
-    for peer_id in tqdm(peers, desc="Пиры"):
-        ip = get_ip(peer_id)
-        if not ip:
+    for pid in tqdm(peers, desc="Пиры"):
+        ip = get_ip(pid)
+        if not ip: continue
+        new_cache[pid] = ip
+
+        # Если peer_id и IP не изменились — используем старое значение
+        if pid in cache and cache[pid] == ip:
             continue
-        # если peer_id есть и ip не изменился — берём старое
-        if peer_id in cache and cache[peer_id].get("ip") == ip:
-            geo = cache[peer_id]
-        else:
-            geo = get_geodata(ip)
-            if not geo:
-                continue
-            geo["peer_id"] = peer_id
-            geo["ip"] = ip
-            cache[peer_id] = geo
-        new_data.append(geo)
+
+        geo = get_geodata(ip)
+        if not geo: continue
+        geo["peer_id"], geo["ip"] = pid, ip
+        result.append(geo)
         time.sleep(0.3)
 
-    if not new_data:
-        print("❌ Нет новых данных")
-        return
+    if not result:
+        log("ℹ️ Нет новых или изменённых пиров для сохранения.")
+    else:
+        file = save_to_csv(result)
+        send_to_remote(file)
 
-    save_cache(cache)
-    file = save_to_csv(new_data)
-    send_to_remote(file)
+    save_cache(new_cache)
+    log("✅ Завершено")
 
 if __name__ == "__main__":
     main()
 EOF
 
-# === Разрешения ===
+# === Права на выполнение ===
 chmod +x collect_and_send_peers.py
 
-# === Крон с логом ===
-(crontab -l 2>/dev/null | grep -v 'collect_and_send_peers.py' ; echo "*/15 * * * * cd \$HOME/celestia-peers && \$HOME/celestia-peers/.venv/bin/python3 collect_and_send_peers.py >> \$HOME/celestia-peers/peers_cron.log 2>&1") | crontab -
+# === Cron на каждые 20 минут (рекомендуется) ===
+(crontab -l 2>/dev/null; echo "*/20 * * * * cd \$HOME/celestia-peers && \$HOME/celestia-peers/.venv/bin/python3 collect_and_send_peers.py") | crontab -
 
 echo ""
-echo "✅ Установка завершена. Сбор пиров и геоданных каждые 15 минут."
+echo "✅ Установка завершена. Скрипт будет запускаться каждые 20 минут."
 echo "👉 Для запуска вручную:"
 echo "source ~/celestia-peers/.venv/bin/activate && python3 ~/celestia-peers/collect_and_send_peers.py"
 echo "👉 Логи: ~/celestia-peers/peers_cron.log"
