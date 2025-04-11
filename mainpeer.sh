@@ -73,7 +73,8 @@ def save_to_csv(data):
         w = csv.writer(f, quoting=csv.QUOTE_ALL)
         w.writerow(["peer_id", "ip", "city", "region", "country", "lat", "lon", "org"])
         for row in data:
-            lat, lon = row.get("loc", "0.0,0.0").split(",")
+            loc = row.get("loc", "0.0,0.0")
+            lat, lon = loc.split(",") if "," in loc else ("0.0", "0.0")
             w.writerow([
                 row.get("peer_id", ""),
                 row.get("ip", ""),
@@ -111,24 +112,32 @@ def main():
 
     for pid in tqdm(peers, desc="Пиры"):
         ip = get_ip(pid)
-        if not ip: continue
+        if not ip:
+            continue
         new_cache[pid] = ip
 
         if pid in cache and cache[pid] == ip:
-            continue
+            geo = {
+                "peer_id": pid,
+                "ip": ip,
+                "loc": "0.0,0.0",
+                "city": "",
+                "region": "",
+                "country": "",
+                "org": ""
+            }
+        else:
+            geo = get_geodata(ip)
+            if not geo:
+                continue
+            geo["peer_id"] = pid
+            geo["ip"] = ip
 
-        geo = get_geodata(ip)
-        if not geo: continue
-        geo["peer_id"], geo["ip"] = pid, ip
         result.append(geo)
         time.sleep(0.3)
 
-    if not result:
-        log("ℹ️ Нет новых или изменённых пиров для сохранения.")
-    else:
-        file = save_to_csv(result)
-        send_to_remote(file)
-
+    file = save_to_csv(result)
+    send_to_remote(file)
     save_cache(new_cache)
     log("✅ Завершено")
 
@@ -139,11 +148,11 @@ EOF
 # === Права на выполнение ===
 chmod +x collect_and_send_peers_mainnet.py
 
-# === Cron на каждые 20 минут (рекомендуется) ===
-(crontab -l 2>/dev/null; echo "*/20 * * * * cd \$HOME/celestia-peers && \$HOME/celestia-peers/.venv/bin/python3 collect_and_send_peers_mainnet.py") | crontab -
+# === Cron на каждые 20 минут ===
+(crontab -l 2>/dev/null | grep -v 'collect_and_send_peers_mainnet.py' ; echo "*/20 * * * * cd \$HOME/celestia-peers && \$HOME/celestia-peers/.venv/bin/python3 collect_and_send_peers_mainnet.py") | crontab -
 
 echo ""
 echo "✅ Установка завершена. Скрипт будет запускаться каждые 20 минут."
 echo "👉 Для запуска вручную:"
-echo "source ~/celestia-peers/.venv/bin/activate && python3 ~/celestia-peers/collect_and_send_peers_mainnet.py"
+echo "source ~/celestia-peers/.venv/bin/activate && python3 collect_and_send_peers_mainnet.py"
 echo "👉 Логи: ~/celestia-peers/peers_cron_mainnet.log"
