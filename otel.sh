@@ -5,24 +5,24 @@ read -p "Введите IP третьего сервера (REMOTE_IP): " REMOTE
 read -s -p "Введите пароль пользователя bridge на третьем сервере (REMOTE_PASS): " REMOTE_PASS
 echo
 
-# === Экспорт в окружение (временно) ===
+# === Экспорт во временное окружение ===
 export REMOTE_IP=$REMOTE_IP
 export REMOTE_PASS=$REMOTE_PASS
 
 # === Установка зависимостей ===
 apt update && apt install -y python3 python3-pip python3-venv sshpass curl
 
-# === Директории ===
+# === Директория otel_data (единая) ===
 mkdir -p /root/otel_data
-mkdir -p /root/celestia-otel && cd /root/celestia-otel
+cd /root/otel_data
 
 # === Виртуальное окружение ===
 python3 -m venv .venv
 source .venv/bin/activate
 pip install requests tqdm
 
-# === Создание Python-скрипта ===
-tee fetch_otel_metrics.py > /dev/null << 'EOF'
+# === Python-скрипт ===
+cat > /root/otel_data/fetch_otel_metrics.py << 'EOF'
 #!/usr/bin/env python3
 import requests, os, subprocess
 from datetime import datetime, timezone
@@ -76,26 +76,26 @@ if __name__ == "__main__":
     main()
 EOF
 
-chmod +x fetch_otel_metrics.py
+chmod +x /root/otel_data/fetch_otel_metrics.py
 
-# === Обёртка для запуска (используется cron и ручной запуск) ===
-tee run_otel.sh > /dev/null << EOF
+# === Скрипт run_otel.sh для cron с логами ===
+cat > /root/otel_data/run_otel.sh << EOF
 #!/bin/bash
 export REMOTE_IP="$REMOTE_IP"
 export REMOTE_PASS="$REMOTE_PASS"
-source /root/celestia-otel/.venv/bin/activate
-python3 /root/celestia-otel/fetch_otel_metrics.py >> /root/celestia-otel/otel_cron.log 2>&1
+source /root/otel_data/.venv/bin/activate
+python3 /root/otel_data/fetch_otel_metrics.py >> /root/otel_data/otel_cron.log 2>&1
 EOF
 
-chmod +x run_otel.sh
+chmod +x /root/otel_data/run_otel.sh
 
-# === Добавление в cron (каждые 5 минут) ===
-(crontab -l 2>/dev/null | grep -v 'run_otel.sh'; echo "*/5 * * * * /bin/bash /root/celestia-otel/run_otel.sh") | crontab -
+# === Добавить в cron (каждые 5 минут) ===
+(crontab -l 2>/dev/null | grep -v 'run_otel.sh'; echo "*/5 * * * * /bin/bash /root/otel_data/run_otel.sh") | crontab -
 
 # === Финальное сообщение ===
 echo ""
 echo "✅ Установка завершена. Метрики будут отправляться каждые 5 минут."
 echo "👉 Для запуска вручную:"
-echo "source /root/celestia-otel/.venv/bin/activate && python3 /root/celestia-otel/fetch_otel_metrics.py"
-echo "👉 Cron-логи: /root/celestia-otel/otel_cron.log"
+echo "source /root/otel_data/.venv/bin/activate && python3 /root/otel_data/fetch_otel_metrics.py"
+echo "👉 Cron-логи: /root/otel_data/otel_cron.log"
 echo "👉 Локальные файлы: /root/otel_data/otel_metrics_testnet_latest.txt и otel_metrics_mainnet_latest.txt"
