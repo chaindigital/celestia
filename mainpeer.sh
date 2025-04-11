@@ -19,7 +19,7 @@ tee collect_and_send_peers_mainnet.py > /dev/null << EOF
 #!/usr/bin/env python3
 import subprocess, json, requests, csv, time, shutil, os
 from tqdm import tqdm
-from datetime import datetime
+from datetime import datetime, timezone
 
 NETWORK_TAG = "mainnet"
 REMOTE_USER = "root"
@@ -27,12 +27,13 @@ REMOTE_IP = "$REMOTE_IP"
 REMOTE_PASS = "$REMOTE_PASS"
 REMOTE_DIR = "/root/peers_data/"
 CACHE_FILE = "peer_cache_mainnet.json"
+CACHE_BACKUP = "peer_cache_mainnet_backup.json"
 LOG_FILE = "peers_cron_mainnet.log"
 
 def log(msg):
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     with open(LOG_FILE, "a") as f:
-        f.write(f"[{now}] {msg}\\n")
+        f.write(f"[{now}] {msg}\n")
     print(f"[{now}] {msg}")
 
 def get_peers():
@@ -40,7 +41,8 @@ def get_peers():
         result = subprocess.run(["celestia", "p2p", "peers"], capture_output=True, text=True, check=True)
         data = json.loads(result.stdout)
         return data.get("result", {}).get("peers", [])
-    except: return []
+    except:
+        return []
 
 def get_ip(peer_id):
     try:
@@ -49,13 +51,15 @@ def get_ip(peer_id):
         for addr in data.get("result", {}).get("peer_addr", []):
             if "/ip4/" in addr:
                 return addr.split("/ip4/")[1].split("/")[0]
-    except: return None
+    except:
+        return None
 
 def get_geodata(ip):
     try:
         resp = requests.get(f"https://ipinfo.io/{ip}/json", timeout=5)
         return resp.json() if resp.status_code == 200 else None
-    except: return None
+    except:
+        return None
 
 def load_cache():
     if os.path.exists(CACHE_FILE):
@@ -66,6 +70,7 @@ def load_cache():
 def save_cache(cache):
     with open(CACHE_FILE, "w") as f:
         json.dump(cache, f)
+    shutil.copyfile(CACHE_FILE, CACHE_BACKUP)
 
 def save_to_csv(data):
     latest = f"peers_geo_{NETWORK_TAG}_latest.csv"
@@ -73,8 +78,7 @@ def save_to_csv(data):
         w = csv.writer(f, quoting=csv.QUOTE_ALL)
         w.writerow(["peer_id", "ip", "city", "region", "country", "lat", "lon", "org"])
         for row in data:
-            loc = row.get("loc", "0.0,0.0")
-            lat, lon = loc.split(",") if "," in loc else ("0.0", "0.0")
+            lat, lon = row.get("loc", "0.0,0.0").split(",")
             w.writerow([
                 row.get("peer_id", ""),
                 row.get("ip", ""),
@@ -112,32 +116,32 @@ def main():
 
     for pid in tqdm(peers, desc="Пиры"):
         ip = get_ip(pid)
-        if not ip:
+        if not ip: continue
+        new_cache[pid] = {"ip": ip, "updated_at": datetime.now(timezone.utc).isoformat()}
+
+        # если peer_id и IP не изменились — используем старое значение
+        if pid in cache and cache[pid]["ip"] == ip:
+            geo = cache[pid].get("geo")
+            if geo:
+                geo["peer_id"] = pid
+                geo["ip"] = ip
+                result.append(geo)
             continue
-        new_cache[pid] = ip
 
-        if pid in cache and cache[pid] == ip:
-            geo = {
-                "peer_id": pid,
-                "ip": ip,
-                "loc": "0.0,0.0",
-                "city": "",
-                "region": "",
-                "country": "",
-                "org": ""
-            }
-        else:
-            geo = get_geodata(ip)
-            if not geo:
-                continue
-            geo["peer_id"] = pid
-            geo["ip"] = ip
-
+        geo = get_geodata(ip)
+        if not geo: continue
+        geo["peer_id"] = pid
+        geo["ip"] = ip
+        new_cache[pid]["geo"] = geo
         result.append(geo)
         time.sleep(0.3)
 
-    file = save_to_csv(result)
-    send_to_remote(file)
+    if not result:
+        log("ℹ️ Нет новых или изменённых пиров для сохранения.")
+    else:
+        file = save_to_csv(result)
+        send_to_remote(file)
+
     save_cache(new_cache)
     log("✅ Завершено")
 
@@ -149,10 +153,10 @@ EOF
 chmod +x collect_and_send_peers_mainnet.py
 
 # === Cron на каждые 20 минут ===
-(crontab -l 2>/dev/null | grep -v 'collect_and_send_peers_mainnet.py' ; echo "*/20 * * * * cd \$HOME/celestia-peers && \$HOME/celestia-peers/.venv/bin/python3 collect_and_send_peers_mainnet.py") | crontab -
+(crontab -l 2>/dev/null | grep -v 'collect_and_send_peers_mainnet.py'; echo "*/20 * * * * cd \$HOME/celestia-peers && \$HOME/celestia-peers/.venv/bin/python3 collect_and_send_peers_mainnet.py") | crontab -
 
 echo ""
-echo "✅ Установка завершена. Скрипт будет запускаться каждые 20 минут."
+echo "✅ Установка завершена. Скрипт mainnet будет запускаться каждые 20 минут."
 echo "👉 Для запуска вручную:"
 echo "source ~/celestia-peers/.venv/bin/activate && python3 collect_and_send_peers_mainnet.py"
 echo "👉 Логи: ~/celestia-peers/peers_cron_mainnet.log"
