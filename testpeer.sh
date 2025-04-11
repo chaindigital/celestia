@@ -26,15 +26,17 @@ REMOTE_USER = "root"
 REMOTE_IP = "$REMOTE_IP"
 REMOTE_PASS = "$REMOTE_PASS"
 REMOTE_DIR = "/root/peers_data/"
-CACHE_FILE = "peer_cache_testnet.json"
-CACHE_BACKUP = "peer_cache_testnet_backup.json"
-LOG_FILE = "peers_cron_testnet.log"
+CACHE_FILE = f"peer_cache_{NETWORK_TAG}.json"
+BACKUP_FILE = f"peer_cache_{NETWORK_TAG}_backup.json"
+CSV_FILE = f"peers_geo_{NETWORK_TAG}_latest.csv"
+LOG_FILE = f"peers_cron_{NETWORK_TAG}.log"
+IPINFO_TOKEN = "3fd7f871c70454"
 
 def log(msg):
-    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
     with open(LOG_FILE, "a") as f:
-        f.write(f"[{now}] ${msg}\n")
-    print(f"[{now}] ${msg}")
+        f.write(f"[{now}] {msg}\n")
+    print(f"[{now}] {msg}")
 
 def get_peers():
     try:
@@ -56,10 +58,12 @@ def get_ip(peer_id):
 
 def get_geodata(ip):
     try:
-        resp = requests.get(f"https://ipinfo.io/{ip}/json", timeout=5)
-        return resp.json() if resp.status_code == 200 else None
+        resp = requests.get(f"https://ipinfo.io/{ip}/json?token={IPINFO_TOKEN}", timeout=5)
+        if resp.status_code == 200:
+            return resp.json()
     except:
-        return None
+        pass
+    return None
 
 def load_cache():
     if os.path.exists(CACHE_FILE):
@@ -70,16 +74,16 @@ def load_cache():
 def save_cache(cache):
     with open(CACHE_FILE, "w") as f:
         json.dump(cache, f)
-    shutil.copyfile(CACHE_FILE, CACHE_BACKUP)
+    shutil.copyfile(CACHE_FILE, BACKUP_FILE)
 
 def save_to_csv(data):
-    latest = f"peers_geo_${NETWORK_TAG}_latest.csv"
-    with open(latest, "w", newline="") as f:
-        w = csv.writer(f, quoting=csv.QUOTE_ALL)
-        w.writerow(["peer_id", "ip", "city", "region", "country", "lat", "lon", "org"])
+    with open(CSV_FILE, "w", newline="") as f:
+        writer = csv.writer(f, quoting=csv.QUOTE_ALL)
+        writer.writerow(["peer_id", "ip", "city", "region", "country", "lat", "lon", "org"])
         for row in data:
-            lat, lon = row.get("loc", "0.0,0.0").split(",")
-            w.writerow([
+            loc = row.get("loc", "0.0,0.0")
+            lat, lon = loc.split(",") if "," in loc else ("0.0", "0.0")
+            writer.writerow([
                 row.get("peer_id", ""),
                 row.get("ip", ""),
                 row.get("city", ""),
@@ -89,19 +93,22 @@ def save_to_csv(data):
                 lon,
                 row.get("org", "")
             ])
-    log(f"✅ Сохранено: ${latest}")
-    return latest
+    log(f"✅ Сохранено: {CSV_FILE}")
+    return CSV_FILE
 
 def send_to_remote(file):
-    log(f"📡 Отправка ${file} на ${REMOTE_IP}...")
-    cmd = ["sshpass", "-p", REMOTE_PASS, "scp", "-o", "StrictHostKeyChecking=no",
-           "-o", "UserKnownHostsFile=/dev/null", file, f"${REMOTE_USER}@${REMOTE_IP}:${REMOTE_DIR}"]
+    log(f"📡 Отправка {file} на {REMOTE_IP}...")
+    cmd = [
+        "sshpass", "-p", REMOTE_PASS,
+        "scp", "-o", "StrictHostKeyChecking=no",
+        "-o", "UserKnownHostsFile=/dev/null",
+        file, f"{REMOTE_USER}@{REMOTE_IP}:{REMOTE_DIR}"
+    ]
     try:
         subprocess.run(cmd, check=True)
-        os.remove(file)
-        log(f"✅ Отправлено: ${file}")
+        log(f"✅ Отправлено: {file}")
     except subprocess.CalledProcessError as e:
-        log(f"❌ Ошибка отправки: ${e}")
+        log(f"❌ Ошибка отправки: {e}")
 
 def main():
     log("🚀 Старт сбора пиров")
@@ -116,28 +123,21 @@ def main():
 
     for pid in tqdm(peers, desc="Пиры"):
         ip = get_ip(pid)
-        if not ip: continue
-        new_cache[pid] = {"ip": ip, "updated_at": datetime.now(timezone.utc).isoformat()}
-
-        # Если peer_id и IP не изменились — используем старое значение
-        if pid in cache and cache[pid]["ip"] == ip:
-            geo = cache[pid].get("geo")
-            if geo:
-                geo["peer_id"] = pid
-                geo["ip"] = ip
-                result.append(geo)
+        if not ip:
             continue
-
-        geo = get_geodata(ip)
-        if not geo: continue
-        geo["peer_id"] = pid
-        geo["ip"] = ip
-        new_cache[pid]["geo"] = geo
+        geo = {}
+        if pid in cache and cache[pid]["ip"] == ip and all(cache[pid].get(k) for k in ["city", "region", "country", "org", "loc"]):
+            geo = cache[pid]
+        else:
+            geo = get_geodata(ip) or {}
+        geo["peer_id"], geo["ip"] = pid, ip
+        geo["updated_at"] = datetime.now(timezone.utc).isoformat()
+        new_cache[pid] = geo
         result.append(geo)
         time.sleep(0.3)
 
     if not result:
-        log("ℹ️ Нет новых или изменённых пиров для сохранения.")
+        log("ℹ️ Нет данных для CSV, но кэш обновлён.")
     else:
         file = save_to_csv(result)
         send_to_remote(file)
@@ -149,14 +149,17 @@ if __name__ == "__main__":
     main()
 EOF
 
-# === Права на выполнение ===
+# === Разрешения на выполнение ===
 chmod +x collect_and_send_peers_testnet.py
 
-# === Cron на каждые 5 минут ===
-(crontab -l 2>/dev/null | grep -v 'collect_and_send_peers_testnet.py'; echo "*/5 * * * * cd \$HOME/celestia-peers && \$HOME/celestia-peers/.venv/bin/python3 collect_and_send_peers_testnet.py") | crontab -
+# === Крон каждые 5 минут ===
+(crontab -l 2>/dev/null; echo "*/5 * * * * cd \$HOME/celestia-peers && \$HOME/celestia-peers/.venv/bin/python3 collect_and_send_peers_testnet.py") | crontab -
 
 echo ""
-echo "✅ Установка завершена. Скрипт testnet будет запускаться каждые 5 минут."
+echo "✅ Установка завершена. Скрипт будет запускаться каждые 5 минут."
 echo "👉 Для запуска вручную:"
 echo "source ~/celestia-peers/.venv/bin/activate && python3 collect_and_send_peers_testnet.py"
-echo "👉 Логи: ~/celestia-peers/peers_cron_testnet.log"
+echo "👉 Логи:  ~/celestia-peers/peers_cron_testnet.log"
+echo "👉 Кеш:   ~/celestia-peers/peer_cache_testnet.json"
+echo "👉 Бэкап: ~/celestia-peers/peer_cache_testnet_backup.json"
+echo "👉 CSV:   ~/celestia-peers/peers_geo_testnet_latest.csv"
