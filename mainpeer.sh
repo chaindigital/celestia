@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# === Ввод параметров ===
+# === Ввод переменных ===
 read -p "Введите IP третьего сервера (REMOTE_IP): " REMOTE_IP
 read -s -p "Введите пароль root пользователя на третьем сервере (REMOTE_PASS): " REMOTE_PASS
 echo
@@ -8,20 +8,19 @@ echo
 # === Установка зависимостей ===
 sudo apt update && sudo apt install -y python3 python3-pip python3-venv jq curl sshpass
 
-# === Подготовка окружения ===
+# === Создание директории и окружения ===
 mkdir -p ~/celestia-peers && cd ~/celestia-peers
 python3 -m venv .venv
 source .venv/bin/activate
 pip install --break-system-packages requests tqdm
 
-# === Python-скрипт collect_and_send_peers_mainnet.py ===
+# === Создание Python-скрипта ===
 tee collect_and_send_peers_mainnet.py > /dev/null << EOF
 #!/usr/bin/env python3
-import subprocess, json, requests, csv, time, os, shutil
+import subprocess, json, requests, csv, time, shutil, os
 from tqdm import tqdm
 from datetime import datetime, timezone
 
-# === Константы ===
 NETWORK_TAG = "mainnet"
 REMOTE_USER = "root"
 REMOTE_IP = "$REMOTE_IP"
@@ -29,8 +28,9 @@ REMOTE_PASS = "$REMOTE_PASS"
 REMOTE_DIR = "/root/peers_data/"
 CACHE_FILE = f"peer_cache_{NETWORK_TAG}.json"
 BACKUP_FILE = f"peer_cache_{NETWORK_TAG}_backup.json"
-LOG_FILE = f"peers_cron_{NETWORK_TAG}.log"
 CSV_FILE = f"peers_geo_{NETWORK_TAG}_latest.csv"
+LOG_FILE = f"peers_cron_{NETWORK_TAG}.log"
+IPINFO_TOKEN = "3fd7f871c70454"
 
 def log(msg):
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
@@ -43,7 +43,8 @@ def get_peers():
         result = subprocess.run(["celestia", "p2p", "peers"], capture_output=True, text=True, check=True)
         data = json.loads(result.stdout)
         return data.get("result", {}).get("peers", [])
-    except: return []
+    except:
+        return []
 
 def get_ip(peer_id):
     try:
@@ -52,15 +53,17 @@ def get_ip(peer_id):
         for addr in data.get("result", {}).get("peer_addr", []):
             if "/ip4/" in addr:
                 return addr.split("/ip4/")[1].split("/")[0]
-    except: return None
+    except:
+        return None
 
 def get_geodata(ip):
     try:
-        resp = requests.get(f"https://ipinfo.io/{ip}/json", timeout=5)
+        resp = requests.get(f"https://ipinfo.io/{ip}/json?token={IPINFO_TOKEN}", timeout=5)
         if resp.status_code == 200:
             return resp.json()
-    except: pass
-    return {}
+    except:
+        pass
+    return None
 
 def load_cache():
     if os.path.exists(CACHE_FILE):
@@ -73,30 +76,32 @@ def save_cache(cache):
         json.dump(cache, f)
     shutil.copyfile(CACHE_FILE, BACKUP_FILE)
 
-def save_to_csv(cache):
+def save_to_csv(data):
     with open(CSV_FILE, "w", newline="") as f:
         writer = csv.writer(f, quoting=csv.QUOTE_ALL)
         writer.writerow(["peer_id", "ip", "city", "region", "country", "lat", "lon", "org"])
-        for pid, entry in cache.items():
-            loc = entry.get("loc", "0.0,0.0")
+        for row in data:
+            loc = row.get("loc", "0.0,0.0")
             lat, lon = loc.split(",") if "," in loc else ("0.0", "0.0")
             writer.writerow([
-                pid,
-                entry.get("ip", ""),
-                entry.get("city", ""),
-                entry.get("region", ""),
-                entry.get("country", ""),
-                lat, lon,
-                entry.get("org", "")
+                row.get("peer_id", ""),
+                row.get("ip", ""),
+                row.get("city", ""),
+                row.get("region", ""),
+                row.get("country", ""),
+                lat,
+                lon,
+                row.get("org", "")
             ])
-    log(f"✅ CSV сохранён: {CSV_FILE}")
+    log(f"✅ Сохранено: {CSV_FILE}")
     return CSV_FILE
 
 def send_to_remote(file):
     log(f"📡 Отправка {file} на {REMOTE_IP}...")
     cmd = [
         "sshpass", "-p", REMOTE_PASS,
-        "scp", "-o", "StrictHostKeyChecking=no", "-o", "UserKnownHostsFile=/dev/null",
+        "scp", "-o", "StrictHostKeyChecking=no",
+        "-o", "UserKnownHostsFile=/dev/null",
         file, f"{REMOTE_USER}@{REMOTE_IP}:{REMOTE_DIR}"
     ]
     try:
@@ -113,39 +118,41 @@ def main():
         return
 
     cache = load_cache()
-    updated_cache = {}
-    for pid in tqdm(peers, desc="Обработка пиров"):
+    new_cache = {}
+    result = []
+
+    for pid in tqdm(peers, desc="Пиры"):
         ip = get_ip(pid)
         if not ip:
             continue
-        entry = cache.get(pid, {})
-        if entry.get("ip") == ip and entry.get("city"):  # кеш полон — пропускаем
-            updated_cache[pid] = entry
-            continue
-
-        geo = get_geodata(ip)
-        geo["ip"] = ip
+        geo = {}
+        if pid in cache and cache[pid]["ip"] == ip and all(cache[pid].get(k) for k in ["city", "region", "country", "org", "loc"]):
+            geo = cache[pid]
+        else:
+            geo = get_geodata(ip) or {}
+        geo["peer_id"], geo["ip"] = pid, ip
         geo["updated_at"] = datetime.now(timezone.utc).isoformat()
-        updated_cache[pid] = geo
+        new_cache[pid] = geo
+        result.append(geo)
         time.sleep(0.3)
 
-    if not updated_cache:
-        log("⚠️ Нет данных для кэша.")
-        return
+    if not result:
+        log("ℹ️ Нет данных для CSV, но кэш обновлён.")
+    else:
+        file = save_to_csv(result)
+        send_to_remote(file)
 
-    save_cache(updated_cache)
-    file = save_to_csv(updated_cache)
-    send_to_remote(file)
+    save_cache(new_cache)
     log("✅ Завершено")
 
 if __name__ == "__main__":
     main()
 EOF
 
-# === Права на выполнение ===
+# === Разрешения на выполнение ===
 chmod +x collect_and_send_peers_mainnet.py
 
-# === Крон: каждые 5 минут ===
+# === Крон каждые 5 минут ===
 (crontab -l 2>/dev/null; echo "*/5 * * * * cd \$HOME/celestia-peers && \$HOME/celestia-peers/.venv/bin/python3 collect_and_send_peers_mainnet.py") | crontab -
 
 echo ""
