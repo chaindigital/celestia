@@ -11,7 +11,7 @@ source $HOME/.bash_profile
 
 cd ~
 ! [ -x "$(command -v go)" ] && {
-VER="1.22.6"
+VER="1.23.6"
 wget "https://golang.org/dl/go$VER.linux-amd64.tar.gz"
 sudo rm -rf /usr/local/go
 sudo tar -C /usr/local -xzf "go$VER.linux-amd64.tar.gz"
@@ -27,7 +27,7 @@ cd $HOME
 rm -rf celestia-app 
 git clone https://github.com/celestiaorg/celestia-app.git 
 cd celestia-app/ 
-APP_VERSION=v3.8.1 
+APP_VERSION=v3.8.2 
 git checkout tags/$APP_VERSION -b $APP_VERSION 
 make install
 make configure-v3
