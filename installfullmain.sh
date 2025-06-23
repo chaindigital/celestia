@@ -4,7 +4,7 @@ sudo apt install curl git wget htop tmux build-essential jq make gcc -y
 
 cd ~
 ! [ -x "$(command -v go)" ] && {
-VER="1.22.5"
+VER="1.23.6"
 wget "https://golang.org/dl/go$VER.linux-amd64.tar.gz"
 sudo rm -rf /usr/local/go
 sudo tar -C /usr/local -xzf "go$VER.linux-amd64.tar.gz"
@@ -17,7 +17,7 @@ source ~/.bash_profile
 go version
 
 git clone https://github.com/celestiaorg/celestia-app && cd celestia-app
-git checkout v3.8.1
+git checkout v3.8.2
 make install
 
 cd $HOME
