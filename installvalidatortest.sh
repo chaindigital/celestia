@@ -14,7 +14,7 @@ cd $HOME
 rm -rf celestia-app
 git clone https://github.com/celestiaorg/celestia-app.git
 cd celestia-app
-git checkout v4.0.3-mocha
+git checkout v4.0.6-mocha
 make install
 
 celestia-appd config chain-id mocha-4
