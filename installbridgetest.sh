@@ -1,7 +1,7 @@
 #!/bin/bash
 git clone https://github.com/celestiaorg/celestia-node && cd celestia-node
 
-git checkout tags/v0.23.3-mocha
+git checkout tags/v0.23.4-mocha
 
 make build
 make install
