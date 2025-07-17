@@ -17,7 +17,7 @@ source $HOME/.profile
 go version
 
 git clone https://github.com/celestiaorg/celestia-app && cd celestia-app
-git checkout v4.0.9-mocha
+git checkout v4.0.10-mocha
 make install
 
 cd $HOME
