@@ -1,7 +1,7 @@
 #!/bin/bash
 git clone https://github.com/celestiaorg/celestia-node && cd celestia-node
 
-git checkout tags/v0.22.1
+git checkout tags/v0.24.1
 
 make build
 make install
