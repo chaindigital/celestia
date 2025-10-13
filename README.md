@@ -5,7 +5,7 @@
 </div>
 
 Official documentation:
->- [Validator setup instructions]([https://docs.celestia.org/how-to-guides/nodes-overview])
+>- [Validator setup instructions](https://docs.celestia.org/how-to-guides/nodes-overview)
 # 📋 Upgrade celestia test app
 ~~~bash
 source <(curl -s https://raw.githubusercontent.com/chaindigital/celestia/main/upgradeapp.sh)
