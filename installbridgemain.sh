@@ -1,47 +1,39 @@
 #!/bin/bash
-git clone https://github.com/celestiaorg/celestia-node && cd celestia-node
+set -e
 
+read -p "Enter your RPC_NODE_IP: " RPC_NODE_IP
+
+cd $HOME
+rm -rf celestia-node
+git clone https://github.com/celestiaorg/celestia-node.git
+cd celestia-node
 git checkout tags/v0.26.4
-
 make build
-make install
+sudo make install
 make cel-key
 
-mv $HOME/celestia-node/cel-key /usr/local/bin/ 
-cel-key add bridge_wallet --keyring-backend test --node.type bridge --p2p.network celestia
-cel-key list --node.type bridge --keyring-backend test --p2p.network celestia
-celestia bridge init \
-  --p2p.network celestia \
-  --core.ip http://localhost \
-  --core.port 9090 \
-  --gateway \
-  --gateway.addr 0.0.0.0 \
-  --gateway.port 26659 \
-  --rpc.addr 0.0.0.0 \
-  --rpc.port 26658 \
-  --keyring.accname bridge_wallet
+celestia bridge init --core.ip $RPC_NODE_IP
+$HOME/celestia-node/cel-key list --node.type bridge --keyring-backend test
 
-sudo tee <<EOF >/dev/null /etc/systemd/system/celestia-bridge.service
+sudo tee /etc/systemd/system/celestia-bridge.service > /dev/null <<EOF
 [Unit]
-Description=celestia-bridge Cosmos daemon
+Description=Celestia Bridge Node
 After=network-online.target
+
 [Service]
 User=$USER
 ExecStart=$(which celestia) bridge start --archival \
-  --p2p.network celestia \
-  --gateway \
-  --gateway.addr 0.0.0.0 \
-  --gateway.port 26659 \
-  --metrics.tls=false \
-  --metrics \
-  --metrics.endpoint=otel.mocha.celestia.observer
+  --metrics.tls=true --metrics --metrics.endpoint otel.celestia.observer
 Restart=on-failure
 RestartSec=3
 LimitNOFILE=65535
+
 [Install]
 WantedBy=multi-user.target
 EOF
 
-systemctl daemon-reload
-systemctl enable celestia-bridge
-systemctl restart celestia-bridge && journalctl -u celestia-bridge -f -o cat
+sudo systemctl daemon-reload
+sudo systemctl enable celestia-bridge
+sudo systemctl restart celestia-bridge
+
+echo "Setup complete. Monitor logs with: sudo journalctl -u celestia-bridge -f"
