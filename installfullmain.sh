@@ -4,7 +4,7 @@ sudo apt install curl git wget htop tmux build-essential jq make gcc -y
 
 cd ~
 ! [ -x "$(command -v go)" ] && {
-VER="1.24.2"
+VER="1.24.6"
 wget "https://golang.org/dl/go$VER.linux-amd64.tar.gz"
 sudo rm -rf /usr/local/go
 sudo tar -C /usr/local -xzf "go$VER.linux-amd64.tar.gz"
