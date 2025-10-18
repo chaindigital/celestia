@@ -18,6 +18,10 @@ source <(curl -s https://raw.githubusercontent.com/chaindigital/celestia/main/up
 ~~~bash
 source <(curl -s https://raw.githubusercontent.com/chaindigital/celestia/main/upgradeappmain.sh)
 ~~~
+# 📋 Upgrade celestia main node 
+~~~bash
+source <(curl -s https://raw.githubusercontent.com/chaindigital/celestia/main/upgradenodemain.sh)
+~~~
 # 🛠️ Install test validator
 ~~~bash
 source <(curl -s https://raw.githubusercontent.com/chaindigital/celestia/main/installvalidatortest.sh)
