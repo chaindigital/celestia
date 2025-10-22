@@ -1,11 +1,24 @@
 # Celestia
 <div>
-<h1 align="left" style="display: flex;"> Celestia node Setup for Mocha-4 Testnet and Celestia mainnet</h1>
 <img src="https://avatars.githubusercontent.com/u/54859940?s=200&v=4"  style="float: right;" width="100" height="100"></img>
 </div>
 
 Official documentation:
 >- [Validator setup instructions](https://docs.celestia.org/how-to-guides/nodes-overview)
+
+##  Endpoints/Snapshot/AddrBook  
+
+###  Testnet
+
+####  Endpoints
+-  **API**: [`https://celestia.api.testnets.chaindigital.io/`](https://celestia.api.testnets.chaindigital.io/)  
+-  **RPC**: [`https://celestia.rpc.testnets.chaindigital.io/`](https://celestia.rpc.testnets.chaindigital.io/)  
+-  **gRPC**: `celestia.grpc.testnets.chaindigital.io:443`
+
+---  
+
+<h1 align="left" style="display: flex;"> Celestia node Setup for Mocha-4 Testnet and Celestia mainnet</h1>
+
 # 📋 Upgrade celestia test app
 ~~~bash
 source <(curl -s https://raw.githubusercontent.com/chaindigital/celestia/main/upgradeapp.sh)
