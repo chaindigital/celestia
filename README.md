@@ -15,6 +15,15 @@ Official documentation:
 -  **RPC**: [`https://celestia.rpc.testnets.chaindigital.io/`](https://celestia.rpc.testnets.chaindigital.io/)  
 -  **gRPC**: `celestia.grpc.testnets.chaindigital.io:443`
 
+####  AddrBook (updated hourly)
+```bash
+wget -O $HOME/.celestia-app/config/addrbook.json https://testnets.chaindigital.io/celestia/addrbook.json
+```
+
+#### Consensus Node (pruned) Snapshot
+
+[`https://docs.chaindigital.io/testnets/celestia/`](https://docs.chaindigital.io/testnets/celestia/api-snapshot-addrbook#for-consensus-node-pruned-updated-every-5-hours)
+
 ---  
 
 <h1 align="left" style="display: flex;"> Celestia node Setup for Mocha-4 Testnet and Celestia mainnet</h1>
