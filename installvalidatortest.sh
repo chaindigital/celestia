@@ -68,7 +68,7 @@ EOF
 cd $HOME
 rm -rf ~/.celestia-app/data
 mkdir -p ~/.celestia-app/data
-curl -L https://testnets.chaindigital.io/celestia/snap_celestia-prun.tar.lz4 | lz4 -c -d - | tar -x -C $HOME/.celestia-app
+curl -L https://testnets.chaindigital.io/celestia/snap_celestia.tar.lz4 | lz4 -c -d - | tar -x -C $HOME/.celestia-app
 
 sudo systemctl daemon-reload
 sudo systemctl enable celestia-appd
