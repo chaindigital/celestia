@@ -6,9 +6,26 @@
 Official documentation:
 >- [Validator setup instructions](https://docs.celestia.org/how-to-guides/nodes-overview)
 
-##  Endpoints/Snapshot/AddrBook  
+##  Endpoints/Snapshot/AddrBook 
 
-###  Testnet
+###  💎 Mainnet
+
+####  Endpoints
+-  **API**: [`https://celestia.api.mainnets.chaindigital.io/`](https://celestia.api.mainnets.chaindigital.io/)  
+-  **RPC**: [`https://celestia.rpc.mainnets.chaindigital.io/`](https://celestia.rpc.mainnets.chaindigital.io/)  
+-  **gRPC**: `celestia.grpc.mainnets.chaindigital.io:443`
+
+####  AddrBook (updated hourly)
+```bash
+wget -O $HOME/.celestia-app/config/addrbook.json https://mainnets.chaindigital.io/celestia/addrbook.json
+```
+
+#### Consensus Node (pruned) Snapshot - updated every 5 hours
+
+[`https://docs.chaindigital.io/mainnets/celestia/`](https://docs.chaindigital.io/mainnets/celestia/api-snapshot-addrbook#for-consensus-node-pruned-updated-every-5-hours)
+
+
+###  💧 Testnet
 
 ####  Endpoints
 -  **API**: [`https://celestia.api.testnets.chaindigital.io/`](https://celestia.api.testnets.chaindigital.io/)  
@@ -26,7 +43,7 @@ wget -O $HOME/.celestia-app/config/addrbook.json https://testnets.chaindigital.i
 
 ---  
 
-<h1 align="left" style="display: flex;"> Celestia node Setup for Mocha-4 Testnet and Celestia mainnet</h1>
+<h1 align="left" style="display: flex;"> ✅ Celestia node Setup for Mocha-4 Testnet and Celestia mainnet</h1>
 
 # 📋 Upgrade celestia test app
 ~~~bash
