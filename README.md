@@ -24,6 +24,9 @@ wget -O $HOME/.celestia-app/config/addrbook.json https://mainnets.chaindigital.i
 
 [`https://docs.chaindigital.io/mainnets/celestia/`](https://docs.chaindigital.io/mainnets/celestia/api-snapshot-addrbook#for-consensus-node-pruned-updated-every-5-hours)
 
+#### Consensus node (archive) - updated every 7 days
+
+[`https://docs.chaindigital.io/mainnets/celestia/`](https://docs.chaindigital.io/mainnets/celestia/api-snapshot-addrbook#for-consensus-node-archive-updated-every-7-days)
 
 ###  💧 Testnet
 
