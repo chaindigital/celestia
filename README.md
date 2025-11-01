@@ -20,14 +20,6 @@ Official documentation:
 wget -O $HOME/.celestia-app/config/addrbook.json https://mainnets.chaindigital.io/celestia/addrbook.json
 ```
 
-#### Consensus Node (pruned) Snapshot - updated every 5 hours
-
-[`https://docs.chaindigital.io/mainnets/celestia/`](https://docs.chaindigital.io/mainnets/celestia/api-snapshot-addrbook#for-consensus-node-pruned-updated-every-5-hours)
-
-#### Consensus node (archive) - updated every 7 days
-
-[`https://docs.chaindigital.io/mainnets/celestia/`](https://docs.chaindigital.io/mainnets/celestia/api-snapshot-addrbook#for-consensus-node-archive-updated-every-7-days)
-
 ###  💧 Testnet
 
 ####  Endpoints
@@ -40,9 +32,14 @@ wget -O $HOME/.celestia-app/config/addrbook.json https://mainnets.chaindigital.i
 wget -O $HOME/.celestia-app/config/addrbook.json https://testnets.chaindigital.io/celestia/addrbook.json
 ```
 
-#### Consensus Node (pruned) Snapshot - updated every 5 hours
+# 🛰️ Celestia Snapshots
 
-[`https://docs.chaindigital.io/testnets/celestia/`](https://docs.chaindigital.io/testnets/celestia/api-snapshot-addrbook#for-consensus-node-pruned-updated-every-5-hours)
+> You can open the interactive **CHAIN DIGITAL Snapshot Dashboard**,  
+> which displays up-to-date **Celestia** snapshots for both **mainnet** and **testnet**,  
+> including recovery commands and real-time JSON data.
+
+[🟢 **Open Celestia Snapshots Dashboard →**](https://celestia-snapshots.chaindigital.io/)
+
 
 ---  
 
