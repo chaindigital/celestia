@@ -27,7 +27,7 @@ cd $HOME
 rm -rf celestia-app 
 git clone https://github.com/celestiaorg/celestia-app.git 
 cd celestia-app/ 
-APP_VERSION=v5.0.11 
+APP_VERSION=v6.2.4 
 git checkout tags/$APP_VERSION -b $APP_VERSION 
 make install
 make configure-v3
@@ -75,14 +75,10 @@ sed -i -e "s/^minimum-gas-prices *=.*/minimum-gas-prices = \"0.002utia\"/" $HOME
 sed -i -e "s/prometheus = false/prometheus = true/" $HOME/.celestia-app/config/config.toml
 sed -i -e "s/^indexer *=.*/indexer = \"null\"/" $HOME/.celestia-app/config/config.toml
 
-sed -i -e "s|^recv_rate *=.*|recv_rate = 10485760|" -e "s|^send_rate *=.*|send_rate = 10485760|" -e "s|^ttl-num-blocks *=.*|ttl-num-blocks = 12|" $HOME/.celestia-app/config/config.toml
-
 sudo modprobe tcp_bbr
 echo "net.core.default_qdisc=fq" | sudo tee -a /etc/sysctl.conf
 echo "net.ipv4.tcp_congestion_control=bbr" | sudo tee -a /etc/sysctl.conf
 sudo sysctl -p
-
-celestia-appd tendermint unsafe-reset-all --home $HOME/.celestia-app 
 
 sudo tee /etc/systemd/system/celestia-appd.service > /dev/null <<EOF
 [Unit]
