@@ -27,7 +27,7 @@ cd $HOME
 rm -rf celestia-app 
 git clone https://github.com/celestiaorg/celestia-app.git 
 cd celestia-app/ 
-APP_VERSION=v6.2.4 
+APP_VERSION=v6.3.0 
 git checkout tags/$APP_VERSION -b $APP_VERSION 
 make install
 make configure-v3
