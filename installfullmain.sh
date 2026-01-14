@@ -17,7 +17,7 @@ source ~/.bash_profile
 go version
 
 git clone https://github.com/celestiaorg/celestia-app && cd celestia-app
-git checkout v6.4.2
+git checkout v6.4.4
 make install
 
 cd $HOME
