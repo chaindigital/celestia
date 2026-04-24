@@ -3,7 +3,7 @@ cd $HOME
 rm -rf celestia-app 
 git clone https://github.com/celestiaorg/celestia-app.git 
 cd celestia-app/ 
-APP_VERSION=v6.4.10
+APP_VERSION=v8.0.3
 git checkout tags/$APP_VERSION -b $APP_VERSION 
 make install
 sudo systemctl restart celestia-appd && sudo journalctl -u celestia-appd -f
