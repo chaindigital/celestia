@@ -6,41 +6,6 @@
 Official documentation:
 >- [Validator setup instructions](https://docs.celestia.org/how-to-guides/nodes-overview)
 
-##  Endpoints/Snapshot/AddrBook 
-
-###  💎 Mainnet
-
-####  Endpoints
--  **API**: [`https://celestia.api.mainnets.chaindigital.io/`](https://celestia.api.mainnets.chaindigital.io/)  
--  **RPC**: [`https://celestia.rpc.mainnets.chaindigital.io/`](https://celestia.rpc.mainnets.chaindigital.io/)  
--  **gRPC**: `celestia.grpc.mainnets.chaindigital.io:443`
-
-####  AddrBook (updated hourly)
-```bash
-wget -O $HOME/.celestia-app/config/addrbook.json https://mainnets.chaindigital.io/celestia/addrbook.json
-```
-
-###  💧 Testnet
-
-####  Endpoints
--  **API**: [`https://celestia.api.testnets.chaindigital.io/`](https://celestia.api.testnets.chaindigital.io/)  
--  **RPC**: [`https://celestia.rpc.testnets.chaindigital.io/`](https://celestia.rpc.testnets.chaindigital.io/)  
--  **gRPC**: `celestia.grpc.testnets.chaindigital.io:443`
-
-####  AddrBook (updated hourly)
-```bash
-wget -O $HOME/.celestia-app/config/addrbook.json https://testnets.chaindigital.io/celestia/addrbook.json
-```
-
-# 🛰️ Celestia Snapshots
-
-> You can open the interactive **CHAIN DIGITAL Snapshot Dashboard**,  
-> which displays up-to-date **Celestia** snapshots for both **mainnet** and **testnet**,  
-> including recovery commands and real-time JSON data.
-
-[🟢 **Open Celestia Snapshots Dashboard →**](https://celestia-snapshots.chaindigital.io/)
-
-
 ---  
 
 <h1 align="left" style="display: flex;"> ✅ Celestia node Setup for Mocha-4 Testnet and Celestia mainnet</h1>
