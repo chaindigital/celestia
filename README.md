@@ -1,69 +1,8 @@
-# Celestia
-<div>
-<img src="https://avatars.githubusercontent.com/u/54859940?s=200&v=4"  style="float: right;" width="100" height="100"></img>
-</div>
+# Celestia (archived scripts)
 
-Official documentation:
->- [Validator setup instructions](https://docs.celestia.org/how-to-guides/nodes-overview)
+> [!WARNING]
+> The scripts in this repository are outdated: celestia-app v8 and older, the `mocha-4` testnet, and third-party snapshots. Do not use them on current networks.
 
----  
+Current install and upgrade scripts for validator, full and bridge nodes and the Fibre server, on mainnet and mocha-5, are in **[chaindigital/celestia-scripts](https://github.com/chaindigital/celestia-scripts)**.
 
-<h1 align="left" style="display: flex;"> ✅ Celestia node Setup for Mocha-4 Testnet and Celestia mainnet</h1>
-
-# 📋 Upgrade celestia test app
-~~~bash
-source <(curl -s https://raw.githubusercontent.com/chaindigital/celestia/main/upgradeapp.sh)
-~~~
-# 📋 Upgrade celestia test node 
-~~~bash
-source <(curl -s https://raw.githubusercontent.com/chaindigital/celestia/main/upgradenode.sh)
-~~~
-# 📋 Upgrade celestia main app
-~~~bash
-source <(curl -s https://raw.githubusercontent.com/chaindigital/celestia/main/upgradeappmain.sh)
-~~~
-# 📋 Upgrade celestia main node 
-~~~bash
-source <(curl -s https://raw.githubusercontent.com/chaindigital/celestia/main/upgradenodemain.sh)
-~~~
-# 🛠️ Install test validator
-~~~bash
-source <(curl -s https://raw.githubusercontent.com/chaindigital/celestia/main/installvalidatortest.sh)
-~~~
-# 🛠️ Install main validator
-~~~bash
-source <(curl -s https://raw.githubusercontent.com/chaindigital/celestia/main/installvalidatormain.sh)
-~~~
-# 🛠️ Install full test node
-~~~bash
-source <(curl -s https://raw.githubusercontent.com/chaindigital/celestia/main/installfulltest.sh)
-~~~
-# 🛠️ Install full main node
-~~~bash
-source <(curl -s https://raw.githubusercontent.com/chaindigital/celestia/main/installfullmain.sh)
-~~~
-# 🛠️ Install test bridge
-~~~bash 
-source <(curl -s https://raw.githubusercontent.com/chaindigital/celestia/main/installbridgetest.sh)
-~~~
-# 🛠️ Install main bridge
-~~~bash 
-source <(curl -s https://raw.githubusercontent.com/chaindigital/celestia/main/installbridgemain.sh)
-~~~
-# 🛠️ Install monitoring
-~~~bash 
-source <(curl -s https://raw.githubusercontent.com/chaindigital/celestia/main/installmonitoring.sh)
-~~~
-
-
-
-### 🧑‍💻 Firewall security
-Set the default to allow outgoing connections, deny all incoming, allow ssh and node p2p port
-  ~~~bash
-  sudo ufw enable 
-  sudo ufw default allow outgoing 
-  sudo ufw default deny incoming 
-  sudo ufw allow ssh/tcp 
-  sudo ufw allow 26658,2121/tcp 
-  sudo ufw allow 2121/udp 
-  ~~~
+Public RPC, API and snapshots: [chaindigital.tech/tools](https://chaindigital.tech/tools) · [chaindigital/endpoints](https://github.com/chaindigital/endpoints)
